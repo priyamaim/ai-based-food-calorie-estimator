@@ -2,85 +2,97 @@
 
 @layer base {
   :root {
-    --background: #0b0f19;
-    --foreground: #f3f4f6;
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-border: #e2e8f0;
+  }
+
+  .dark {
+    --background: #090d16;
+    --foreground: #f8fafc;
+    --card: #111827;
+    --card-border: #1f2937;
   }
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', system-ui, sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Glassmorphism utility classes */
-.glass-card {
-  background: rgba(17, 24, 39, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+/* Apple Health & MyFitnessPal Styling System */
+.ios-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 12px -2px rgba(0, 0, 0, 0.02);
+  border-radius: 1.75rem; /* rounded-3xl */
 }
 
-.glass-pill {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.dark .ios-card {
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
 }
 
-.glass-modal {
-  background: rgba(15, 23, 42, 0.85);
+.ios-glass {
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
-/* Laser scan animation for image processing */
-@keyframes scanLine {
+.dark .ios-glass {
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(31, 41, 55, 0.8);
+}
+
+/* Progress bar fill animations */
+@keyframes macroProgress {
+  from {
+    width: 0%;
+  }
+}
+
+.animate-macro-fill {
+  animation: macroProgress 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Laser scan line animation */
+@keyframes iosScan {
   0% {
     top: 0%;
-    opacity: 0.8;
+    opacity: 0.6;
   }
   50% {
     opacity: 1;
   }
   100% {
     top: 100%;
-    opacity: 0.8;
+    opacity: 0.6;
   }
 }
 
-.animate-scan-line {
-  animation: scanLine 2s ease-in-out infinite alternate;
+.animate-ios-scan {
+  animation: iosScan 2s ease-in-out infinite alternate;
 }
 
-@keyframes pulseGlow {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 30px rgba(16, 185, 129, 0.7);
-  }
-}
-
-.glow-emerald {
-  animation: pulseGlow 3s infinite;
-}
-
-/* Custom scrollbar */
+/* Smooth custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(156, 163, 175, 0.3);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(156, 163, 175, 0.5);
 }
