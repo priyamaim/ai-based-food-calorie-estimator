@@ -4,33 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
-import { ImageUploader } from '@/components/ImageUploader';
-import { ImagePreviewModal } from '@/components/ImagePreviewModal';
-import { LoadingSkeleton } from '@/components/LoadingSkeleton';
-import { NutritionalResultCard } from '@/components/NutritionalResultCard';
+import { InputPanel } from '@/components/InputPanel';
+import { ResultsDashboard } from '@/components/ResultsDashboard';
 import { ScanHistory } from '@/components/ScanHistory';
-import { compressImageIfNeeded, CompressionResult } from '@/utils/imageCompressor';
+import { CompressionResult } from '@/utils/imageCompressor';
 import { NutritionalAnalysis, MealScanItem, ApiPredictResponse } from '@/types/nutrition';
-import {
-  Sparkles,
-  AlertCircle,
-  ShieldAlert,
-  Flame,
-  Zap,
-  Info,
-  RotateCcw,
-  Key,
-  PieChart,
-  Camera,
-  Activity,
-} from 'lucide-react';
-
-type AppStep = 'IDLE' | 'PREVIEW' | 'LOADING' | 'RESULT' | 'ERROR';
+import { AlertCircle, ShieldAlert, Key, RotateCcw } from 'lucide-react';
 
 export default function Home() {
-  const [step, setStep] = useState<AppStep>('IDLE');
   const [selectedImage, setSelectedImage] = useState<CompressionResult | null>(null);
   const [analysisResult, setAnalysisResult] = useState<NutritionalAnalysis | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [errorDetails, setErrorDetails] = useState<{ message: string; isApiKeyError?: boolean } | null>(null);
 
   // Settings & History state
@@ -113,26 +97,24 @@ export default function Home() {
   };
 
   // Handle Image Selection
-  const handleImageSelected = async (file: File) => {
+  const handleImageSelected = (compressed: CompressionResult) => {
+    setSelectedImage(compressed);
     setErrorDetails(null);
-    try {
-      const compressed = await compressImageIfNeeded(file);
-      setSelectedImage(compressed);
-      setStep('PREVIEW');
-    } catch (err: any) {
-      console.error('Image processing error:', err);
-      setErrorDetails({
-        message: err?.message || 'Failed to process image file. Please try another photo.',
-      });
-      setStep('ERROR');
-    }
+  };
+
+  // Handle Remove Image
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setAnalysisResult(null);
+    setErrorDetails(null);
+    setIsCurrentSaved(false);
   };
 
   // Perform Gemini AI Analysis
-  const handleAnalyzeFood = async () => {
+  const handleAnalyzeMeal = async () => {
     if (!selectedImage) return;
 
-    setStep('LOADING');
+    setIsProcessing(true);
     setErrorDetails(null);
     setIsCurrentSaved(false);
 
@@ -165,145 +147,103 @@ export default function Home() {
           message: data.error || 'Failed to analyze food image with Gemini API.',
           isApiKeyError: isKeyErr,
         });
-        setStep('ERROR');
+        setIsProcessing(false);
         return;
       }
 
       setAnalysisResult(data.data);
-      setStep('RESULT');
+      setIsProcessing(false);
     } catch (err: any) {
       console.error('API request error:', err);
       setErrorDetails({
         message: 'Network error connecting to AI analysis server. Please check your internet connection.',
       });
-      setStep('ERROR');
+      setIsProcessing(false);
     }
   };
 
-  // Reset to initial state
+  // Reset all
   const handleReset = () => {
-    setStep('IDLE');
     setSelectedImage(null);
     setAnalysisResult(null);
     setErrorDetails(null);
+    setIsProcessing(false);
     setIsCurrentSaved(false);
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 pb-20 sm:pb-8">
-      {/* Top Header Bar */}
+    <div className="min-h-screen flex flex-col bg-[#0b0f19] text-gray-100 pb-20 lg:pb-8">
+      {/* Top Header Navigation */}
       <Header
         hasCustomKey={!!customApiKey}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onToggleHistory={() => setIsHistoryOpen(true)}
+        onScanDishClick={() => {
+          handleReset();
+        }}
         historyCount={history.length}
       />
 
-      {/* Main SPA Container */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 sm:px-6 sm:py-10 flex flex-col justify-center">
-        {/* IDLE STEP */}
-        {step === 'IDLE' && (
-          <div className="space-y-10 animate-in fade-in duration-300">
-            {/* Hero Banner - Apple Health aesthetic */}
-            <div className="text-center space-y-3 max-w-2xl mx-auto">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-orange-500/10 dark:bg-orange-500/20 border border-orange-500/20 text-orange-600 dark:text-orange-400 text-xs font-extrabold">
-                <Zap className="w-3.5 h-3.5 fill-orange-500 text-orange-500" />
-                Google Gemini 3.6 Flash Vision AI
-              </div>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-                Snap Your Meal, <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 bg-clip-text text-transparent">Know Your Macros</span>
-              </h2>
-              <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 leading-relaxed max-w-lg mx-auto font-medium">
-                Apple Health &amp; MyFitnessPal inspired AI calorie counter. Snap or upload any dish for an instant energy and macro breakdown.
-              </p>
-            </div>
-
-            {/* Image Uploader Card */}
-            <ImageUploader
-              onImageSelected={handleImageSelected}
-              isProcessing={false}
-            />
-
-            {/* Feature Pills */}
-            <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 max-w-xl mx-auto pt-2">
-              <div className="ios-card rounded-2xl p-4 text-center space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                <Flame className="w-6 h-6 text-orange-500 mx-auto fill-orange-500/20" />
-                <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Calorie Precision</h4>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Instant energy estimate</p>
-              </div>
-
-              <div className="ios-card rounded-2xl p-4 text-center space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                <PieChart className="w-6 h-6 text-amber-500 mx-auto" />
-                <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Macro Ratios</h4>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Protein, Carbs, Fats</p>
-              </div>
-
-              <div className="ios-card rounded-2xl p-4 text-center space-y-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                <Activity className="w-6 h-6 text-indigo-500 mx-auto" />
-                <h4 className="text-xs font-extrabold text-slate-900 dark:text-white">Zero Database</h4>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Direct AI Vision parsing</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* LOADING STEP */}
-        {step === 'LOADING' && (
-          <LoadingSkeleton imagePreviewUrl={selectedImage?.previewUrl} />
-        )}
-
-        {/* RESULT STEP */}
-        {step === 'RESULT' && analysisResult && (
-          <NutritionalResultCard
-            analysis={analysisResult}
-            imagePreviewUrl={selectedImage?.previewUrl}
-            onReset={handleReset}
-            onSaveToHistory={handleSaveToHistory}
-            isSaved={isCurrentSaved}
-          />
-        )}
-
-        {/* ERROR STEP */}
-        {step === 'ERROR' && errorDetails && (
-          <div className="w-full max-w-md mx-auto ios-card rounded-3xl p-6 border border-rose-200 dark:border-rose-900/40 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200 bg-white dark:bg-slate-900">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 mx-auto">
+      {/* Main Two-Column Dashboard Layout */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:px-8 sm:py-10">
+        {/* Error Alert Box */}
+        {errorDetails && (
+          <div className="mb-6 glass-card rounded-2xl p-4 border border-rose-500/30 bg-rose-950/30 text-rose-300 flex items-center justify-between gap-4 animate-in fade-in duration-200">
+            <div className="flex items-center gap-3">
               {errorDetails.isApiKeyError ? (
-                <ShieldAlert className="h-7 w-7" />
+                <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0" />
               ) : (
-                <AlertCircle className="h-7 w-7" />
+                <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
               )}
+              <span className="text-xs font-semibold">{errorDetails.message}</span>
             </div>
 
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Analysis Error</h3>
-              <p className="mt-1.5 text-xs text-rose-600 dark:text-rose-300 leading-relaxed font-medium">
-                {errorDetails.message}
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2 pt-2">
+            <div className="flex items-center gap-2">
               {errorDetails.isApiKeyError && (
                 <button
                   type="button"
                   onClick={() => setIsSettingsOpen(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs transition active:scale-95"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition"
                 >
-                  <Key className="w-4 h-4" />
-                  Configure Gemini API Key
+                  <Key className="w-3.5 h-3.5 inline mr-1" /> Key Settings
                 </button>
               )}
-
               <button
                 type="button"
-                onClick={handleReset}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs transition active:scale-95"
+                onClick={() => setErrorDetails(null)}
+                className="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 text-xs font-semibold hover:bg-slate-800 transition"
               >
-                <RotateCcw className="w-4 h-4" />
-                Try Another Photo
+                Dismiss
               </button>
             </div>
           </div>
         )}
+
+        {/* Grid Container: Stacked on Mobile, Side-by-Side on Desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+          {/* Left Column (Input Panel): 5 Cols on Desktop */}
+          <div className="lg:col-span-5 w-full">
+            <InputPanel
+              selectedImage={selectedImage}
+              onImageSelected={handleImageSelected}
+              onRemoveImage={handleRemoveImage}
+              onAnalyzeMeal={handleAnalyzeMeal}
+              isProcessing={isProcessing}
+            />
+          </div>
+
+          {/* Right Column (Results Dashboard): 7 Cols on Desktop */}
+          <div className="lg:col-span-7 w-full">
+            <ResultsDashboard
+              analysis={analysisResult}
+              imagePreviewUrl={selectedImage?.previewUrl}
+              isProcessing={isProcessing}
+              onReset={handleReset}
+              onSaveToHistory={handleSaveToHistory}
+              isSaved={isCurrentSaved}
+            />
+          </div>
+        </div>
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
@@ -315,16 +255,6 @@ export default function Home() {
         activeTab={isHistoryOpen ? 'history' : isSettingsOpen ? 'settings' : 'home'}
         historyCount={history.length}
       />
-
-      {/* Image Preview Confirmation Modal */}
-      {step === 'PREVIEW' && selectedImage && (
-        <ImagePreviewModal
-          imageInfo={selectedImage}
-          onAnalyze={handleAnalyzeFood}
-          onCancel={handleReset}
-          isProcessing={false}
-        />
-      )}
 
       {/* API Key Modal */}
       <ApiKeyModal
@@ -349,15 +279,14 @@ export default function Home() {
             wasCompressed: false,
             previewUrl: item.imageUri,
           });
-          setStep('RESULT');
         }}
         onClearHistory={handleClearHistory}
         onDeleteScan={handleDeleteScan}
       />
 
       {/* Footer */}
-      <footer className="hidden sm:block border-t border-slate-200/80 dark:border-slate-800/80 py-4 text-center text-xs text-slate-500 dark:text-slate-400 font-medium">
-        <p>NutriSnap AI • Apple Health &amp; MyFitnessPal Gemini 3.6 Flash UI</p>
+      <footer className="hidden lg:block border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">
+        <p>NutriSnap AI • Modern Standalone Two-Column Calorie Dashboard</p>
       </footer>
     </div>
   );

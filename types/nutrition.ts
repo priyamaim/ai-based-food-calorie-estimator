@@ -1,3 +1,9 @@
+export interface FoodItemBreakdown {
+  name: string;
+  portion: string;
+  calories: number;
+}
+
 export interface NutritionalAnalysis {
   food_name: string;
   total_calories: number;
@@ -6,6 +12,7 @@ export interface NutritionalAnalysis {
   fat_g: number;
   confidence_score: 'High' | 'Medium' | 'Low' | string;
   health_tip: string;
+  items?: FoodItemBreakdown[];
 }
 
 export interface MealScanItem {

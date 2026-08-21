@@ -9,12 +9,12 @@ export async function POST(req: NextRequest) {
 
     if (!image) {
       return NextResponse.json(
-        { success: false, error: 'No image data provided in payload.' },
+        { success: false, error: 'No image payload provided.' },
         { status: 400 }
       );
     }
 
-    // Read API key from x-gemini-key header or server environment variable
+    // Read API key from x-gemini-key header or server env variable
     const customApiKey = req.headers.get('x-gemini-key');
     const apiKey = customApiKey || process.env.GEMINI_API_KEY;
 
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           error:
-            'Gemini API key is missing or unconfigured. Please configure GEMINI_API_KEY in .env.local or enter a custom key in settings.',
+            'Gemini API key is missing. Please configure GEMINI_API_KEY in .env.local or enter a custom key in settings.',
         },
         { status: 401 }
       );
@@ -32,14 +32,16 @@ export async function POST(req: NextRequest) {
     // Initialize Official @google/genai SDK
     const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
 
-    const promptText = `Act as an expert nutritionist. Analyze the food or meal in the provided image.
+    const promptText = `Act as an expert AI nutritionist. Analyze the food or meal in the provided image.
 
-Provide a realistic, accurate estimate of its nutritional values for a typical serving.
+Provide a realistic, highly accurate nutritional breakdown.
 
 IMPORTANT GUIDELINES:
-1. Identify the primary dish or food items clearly in "food_name".
-2. If the image is NOT food, drinks, or an edible meal, set "food_name" to "Non-Food Item Detected", set all nutrient values (total_calories, protein_g, carbs_g, fat_g) to 0, set "confidence_score" to "Low", and explain in "health_tip" that the uploaded photo does not appear to contain food.
-3. Return ONLY a strict JSON object matching the requested schema.`;
+1. Identify the primary dish in "food_name".
+2. Estimate total_calories, protein_g, carbs_g, fat_g, confidence_score, and a practical health_tip.
+3. Breakdown the dish into individual food components or ingredients in the "items" array. For each item, specify its name, estimated portion/weight (e.g. "150g" or "1 cup"), and individual calories.
+4. If the image is NOT edible food or drink, set "food_name" to "Non-Food Item Detected", set all nutrient values to 0, confidence_score to "Low", items to empty array, and explain in health_tip.
+5. Return ONLY a strict JSON object matching the schema.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.6-flash',
@@ -90,7 +92,20 @@ IMPORTANT GUIDELINES:
             },
             health_tip: {
               type: Type.STRING,
-              description: 'Dietary insight, health recommendation, or advice',
+              description: 'Nutritional advice or health tip',
+            },
+            items: {
+              type: Type.ARRAY,
+              description: 'Itemized breakdown of food components/ingredients',
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING, description: 'Ingredient/item name' },
+                  portion: { type: Type.STRING, description: 'Portion or weight (e.g. 150g)' },
+                  calories: { type: Type.NUMBER, description: 'Individual item calories' },
+                },
+                required: ['name', 'portion', 'calories'],
+              },
             },
           },
           required: [
@@ -101,6 +116,7 @@ IMPORTANT GUIDELINES:
             'fat_g',
             'confidence_score',
             'health_tip',
+            'items',
           ],
         },
       },
@@ -109,24 +125,22 @@ IMPORTANT GUIDELINES:
     const responseText = response.text;
     if (!responseText) {
       return NextResponse.json(
-        { success: false, error: 'Empty response received from Gemini API model.' },
+        { success: false, error: 'Empty response from Gemini API.' },
         { status: 500 }
       );
     }
 
-    // Parse JSON output
     let parsedData: NutritionalAnalysis;
     try {
       parsedData = JSON.parse(responseText);
     } catch (parseError) {
       console.error('Failed to parse Gemini response JSON:', responseText, parseError);
       return NextResponse.json(
-        { success: false, error: 'Invalid JSON response received from AI model.' },
+        { success: false, error: 'Invalid JSON response from AI model.' },
         { status: 500 }
       );
     }
 
-    // Check if non-food item
     const isNonFood =
       parsedData.food_name.toLowerCase().includes('non-food') ||
       (parsedData.total_calories === 0 &&
@@ -144,7 +158,6 @@ IMPORTANT GUIDELINES:
 
     const errorMessage = error?.message || String(error);
 
-    // Handle common API key & quota errors
     if (
       errorMessage.includes('API_KEY_INVALID') ||
       errorMessage.includes('API key not valid') ||
@@ -155,7 +168,7 @@ IMPORTANT GUIDELINES:
         {
           success: false,
           error:
-            'Invalid Gemini API Key. Please check your Google AI Studio key and try again.',
+            'Invalid Gemini API Key. Please check your Google AI Studio key in settings.',
         },
         { status: 401 }
       );
@@ -174,7 +187,7 @@ IMPORTANT GUIDELINES:
     return NextResponse.json(
       {
         success: false,
-        error: errorMessage || 'An unexpected error occurred during image analysis.',
+        error: errorMessage || 'An unexpected error occurred during analysis.',
       },
       { status: 500 }
     );
