@@ -24,13 +24,13 @@ export const ScanHistory: React.FC<ScanHistoryProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="glass-modal w-full max-w-md h-full p-6 shadow-2xl border-l border-slate-800 text-white flex flex-col justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-end bg-[#09090b]/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="glass-modal w-full max-w-md h-full p-6 shadow-2xl border-l border-purple-900/40 text-white flex flex-col justify-between bg-[#120c1f]">
         <div>
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+          <div className="flex items-center justify-between pb-4 border-b border-purple-950/80 mb-4">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              <div className="p-2.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
                 <Utensils className="w-5 h-5" />
               </div>
               <div>
@@ -41,7 +41,7 @@ export const ScanHistory: React.FC<ScanHistoryProps> = ({
 
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-white transition rounded-xl p-1.5 hover:bg-slate-800"
+              className="text-slate-400 hover:text-white transition rounded-xl p-1.5 hover:bg-purple-950/60"
             >
               <X className="w-5 h-5" />
             </button>
@@ -50,7 +50,7 @@ export const ScanHistory: React.FC<ScanHistoryProps> = ({
           {/* List of items */}
           {history.length === 0 ? (
             <div className="py-16 text-center text-slate-500 space-y-3">
-              <History className="w-12 h-12 mx-auto text-slate-700 opacity-50" />
+              <History className="w-12 h-12 mx-auto text-purple-900 opacity-50" />
               <p className="text-xs font-semibold">No saved meal scans yet.</p>
               <p className="text-[11px] text-slate-600">Scan a meal photo to build your log!</p>
             </div>
@@ -59,7 +59,7 @@ export const ScanHistory: React.FC<ScanHistoryProps> = ({
               {history.map((item) => (
                 <div
                   key={item.id}
-                  className="group relative rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-emerald-500/40 p-3.5 flex items-center gap-3.5 transition cursor-pointer active:scale-[0.99]"
+                  className="group relative rounded-2xl bg-[#090511]/80 border border-purple-950/80 hover:border-purple-500/40 p-3.5 flex items-center gap-3.5 transition cursor-pointer active:scale-[0.99]"
                   onClick={() => {
                     onSelectScan(item);
                     onClose();
@@ -68,7 +68,7 @@ export const ScanHistory: React.FC<ScanHistoryProps> = ({
                   <img
                     src={item.imageUri}
                     alt={item.analysis.food_name}
-                    className="w-14 h-14 rounded-xl object-cover border border-slate-800 shrink-0 shadow-sm"
+                    className="w-14 h-14 rounded-xl object-cover border border-purple-900/60 shrink-0 shadow-sm"
                   />
 
                   <div className="flex-1 min-w-0">
@@ -77,7 +77,7 @@ export const ScanHistory: React.FC<ScanHistoryProps> = ({
                     </h4>
 
                     <div className="flex items-center gap-2.5 mt-1">
-                      <span className="text-xs font-black text-emerald-400 flex items-center gap-0.5">
+                      <span className="text-xs font-black text-purple-300 flex items-center gap-0.5">
                         <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                         {item.analysis.total_calories} kcal
                       </span>
@@ -91,9 +91,9 @@ export const ScanHistory: React.FC<ScanHistoryProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1 font-semibold">
-                      <span className="text-emerald-400">P: {item.analysis.protein_g}g</span>
+                      <span className="text-purple-400">P: {item.analysis.protein_g}g</span>
                       <span className="text-amber-400">C: {item.analysis.carbs_g}g</span>
-                      <span className="text-rose-400">F: {item.analysis.fat_g}g</span>
+                      <span className="text-fuchsia-400">F: {item.analysis.fat_g}g</span>
                     </div>
                   </div>
 
@@ -103,7 +103,7 @@ export const ScanHistory: React.FC<ScanHistoryProps> = ({
                       e.stopPropagation();
                       onDeleteScan(item.id);
                     }}
-                    className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition p-1.5 rounded-lg hover:bg-slate-800"
+                    className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition p-1.5 rounded-lg hover:bg-purple-950/60"
                     title="Delete item"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -118,7 +118,7 @@ export const ScanHistory: React.FC<ScanHistoryProps> = ({
 
         {/* Footer Clear Log Button */}
         {history.length > 0 && (
-          <div className="pt-4 border-t border-slate-800">
+          <div className="pt-4 border-t border-purple-950/80">
             <button
               type="button"
               onClick={onClearHistory}

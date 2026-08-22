@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
-import { InputPanel, PORTION_PRESETS } from '@/components/InputPanel';
-import { ResultsDashboard } from '@/components/ResultsDashboard';
+import { InputPanel } from '@/components/InputPanel';
+import { ResultsDashboard, PORTION_PRESETS } from '@/components/ResultsDashboard';
 import { ScanHistory } from '@/components/ScanHistory';
 import { CompressionResult } from '@/utils/imageCompressor';
 import { NutritionalAnalysis, MealScanItem, ApiPredictResponse } from '@/types/nutrition';
@@ -115,7 +115,7 @@ export default function Home() {
     setIsCurrentSaved(false);
   };
 
-  // Perform Gemini AI Analysis with Portion & Cooking Controls
+  // Perform Gemini AI Analysis
   const handleAnalyzeMeal = async () => {
     if (!selectedImage) return;
 
@@ -123,7 +123,6 @@ export default function Home() {
     setErrorDetails(null);
     setIsCurrentSaved(false);
 
-    // Find portion preset label or construct label
     const matchedPreset = PORTION_PRESETS.find(
       (p) => Math.abs(p.multiplier - portionMultiplier) < 0.05
     );
@@ -189,7 +188,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0b0f19] text-gray-100 pb-20 lg:pb-8">
+    <div className="min-h-screen flex flex-col bg-[#09090b] text-gray-100 pb-20 lg:pb-8 selection:bg-purple-600 selection:text-white">
       {/* Top Header Navigation */}
       <Header
         hasCustomKey={!!customApiKey}
@@ -220,7 +219,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setIsSettingsOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition"
+                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition"
                 >
                   <Key className="w-3.5 h-3.5 inline mr-1" /> Key Settings
                 </button>
@@ -228,7 +227,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setErrorDetails(null)}
-                className="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 text-xs font-semibold hover:bg-slate-800 transition"
+                className="px-3 py-1.5 rounded-xl border border-purple-900/50 bg-purple-950/40 text-slate-300 text-xs font-semibold hover:bg-purple-900/50 transition"
               >
                 Dismiss
               </button>
@@ -238,7 +237,7 @@ export default function Home() {
 
         {/* Grid Container: Stacked on Mobile, Side-by-Side on Desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-          {/* Left Column (Input Panel): 5 Cols on Desktop */}
+          {/* Left Column (Input Panel): Photo Input Only (5 Cols on Desktop) */}
           <div className="lg:col-span-5 w-full">
             <InputPanel
               selectedImage={selectedImage}
@@ -246,16 +245,10 @@ export default function Home() {
               onRemoveImage={handleRemoveImage}
               onAnalyzeMeal={handleAnalyzeMeal}
               isProcessing={isProcessing}
-              portionMultiplier={portionMultiplier}
-              onPortionChange={setPortionMultiplier}
-              cookingMethod={cookingMethod}
-              onCookingMethodChange={setCookingMethod}
-              mealType={mealType}
-              onMealTypeChange={setMealType}
             />
           </div>
 
-          {/* Right Column (Results Dashboard): 7 Cols on Desktop */}
+          {/* Right Column (Results Dashboard): Analysis Context Setup & Results (7 Cols on Desktop) */}
           <div className="lg:col-span-7 w-full">
             <ResultsDashboard
               analysis={analysisResult}
@@ -264,6 +257,12 @@ export default function Home() {
               onReset={handleReset}
               onSaveToHistory={handleSaveToHistory}
               isSaved={isCurrentSaved}
+              portionMultiplier={portionMultiplier}
+              onPortionChange={setPortionMultiplier}
+              cookingMethod={cookingMethod}
+              onCookingMethodChange={setCookingMethod}
+              mealType={mealType}
+              onMealTypeChange={setMealType}
             />
           </div>
         </div>
@@ -308,8 +307,8 @@ export default function Home() {
       />
 
       {/* Footer */}
-      <footer className="hidden lg:block border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">
-        <p>NutriSnap AI • Portion &amp; Preparation Precision Control Dashboard</p>
+      <footer className="hidden lg:block border-t border-purple-950/80 py-4 text-center text-xs text-slate-500">
+        <p>NutriSnap AI • Black &amp; Purple Standalone Calorie Dashboard</p>
       </footer>
     </div>
   );
