@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, Type } from '@google/genai';
-import { NutritionalAnalysis } from '@/types/nutrition';
+import { NutritionalAnalysis, ApiPredictRequest } from '@/types/nutrition';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { image, mimeType = 'image/jpeg' } = body;
+    const body: ApiPredictRequest = await req.json();
+    const {
+      image,
+      mimeType = 'image/jpeg',
+      portionSizeMultiplier = 1.0,
+      portionLabel = 'Medium (1.0x)',
+      cookingMethod = 'Grilled/Baked',
+      mealType = 'Lunch',
+    } = body;
 
     if (!image) {
       return NextResponse.json(
@@ -34,11 +41,16 @@ export async function POST(req: NextRequest) {
 
     const promptText = `Act as an expert AI nutritionist. Analyze the food or meal in the provided image.
 
-Provide a realistic, highly accurate nutritional breakdown.
+USER SPECIFIED MEAL CONTEXT & PREPARATION:
+- Portion Size: ${portionLabel} (${portionSizeMultiplier}x portion factor)
+- Cooking / Preparation Method: ${cookingMethod}
+- Meal Context: ${mealType}
 
 IMPORTANT GUIDELINES:
 1. Identify the primary dish in "food_name".
-2. Estimate total_calories, protein_g, carbs_g, fat_g, confidence_score, and a practical health_tip.
+2. Adjust total_calories, protein_g, carbs_g, fat_g, and ingredient breakdown accordingly:
+   - The user indicates this meal was prepared via ${cookingMethod} and is a ${portionLabel} portion (${portionSizeMultiplier}x multiplier).
+   - Higher portion sizes or deep-fried methods significantly increase total calories and fat estimates.
 3. Breakdown the dish into individual food components or ingredients in the "items" array. For each item, specify its name, estimated portion/weight (e.g. "150g" or "1 cup"), and individual calories.
 4. If the image is NOT edible food or drink, set "food_name" to "Non-Food Item Detected", set all nutrient values to 0, confidence_score to "Low", items to empty array, and explain in health_tip.
 5. Return ONLY a strict JSON object matching the schema.`;
@@ -72,7 +84,7 @@ IMPORTANT GUIDELINES:
             },
             total_calories: {
               type: Type.NUMBER,
-              description: 'Estimated total calories in kcal',
+              description: 'Estimated total calories in kcal adjusted for portion and cooking method',
             },
             protein_g: {
               type: Type.NUMBER,
@@ -92,7 +104,7 @@ IMPORTANT GUIDELINES:
             },
             health_tip: {
               type: Type.STRING,
-              description: 'Nutritional advice or health tip',
+              description: 'Nutritional advice or health tip tailored to cooking method',
             },
             items: {
               type: Type.ARRAY,
@@ -133,6 +145,10 @@ IMPORTANT GUIDELINES:
     let parsedData: NutritionalAnalysis;
     try {
       parsedData = JSON.parse(responseText);
+      parsedData.portionSizeMultiplier = portionSizeMultiplier;
+      parsedData.portionLabel = portionLabel;
+      parsedData.cookingMethod = cookingMethod;
+      parsedData.mealType = mealType;
     } catch (parseError) {
       console.error('Failed to parse Gemini response JSON:', responseText, parseError);
       return NextResponse.json(

@@ -4,18 +4,23 @@ import React, { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
-import { InputPanel } from '@/components/InputPanel';
+import { InputPanel, PORTION_PRESETS } from '@/components/InputPanel';
 import { ResultsDashboard } from '@/components/ResultsDashboard';
 import { ScanHistory } from '@/components/ScanHistory';
 import { CompressionResult } from '@/utils/imageCompressor';
 import { NutritionalAnalysis, MealScanItem, ApiPredictResponse } from '@/types/nutrition';
-import { AlertCircle, ShieldAlert, Key, RotateCcw } from 'lucide-react';
+import { AlertCircle, ShieldAlert, Key } from 'lucide-react';
 
 export default function Home() {
   const [selectedImage, setSelectedImage] = useState<CompressionResult | null>(null);
   const [analysisResult, setAnalysisResult] = useState<NutritionalAnalysis | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [errorDetails, setErrorDetails] = useState<{ message: string; isApiKeyError?: boolean } | null>(null);
+
+  // Preparation & Portion Controls State
+  const [portionMultiplier, setPortionMultiplier] = useState<number>(1.0);
+  const [cookingMethod, setCookingMethod] = useState<string>('Grilled/Baked');
+  const [mealType, setMealType] = useState<string>('Lunch');
 
   // Settings & History state
   const [customApiKey, setCustomApiKey] = useState<string>('');
@@ -110,13 +115,21 @@ export default function Home() {
     setIsCurrentSaved(false);
   };
 
-  // Perform Gemini AI Analysis
+  // Perform Gemini AI Analysis with Portion & Cooking Controls
   const handleAnalyzeMeal = async () => {
     if (!selectedImage) return;
 
     setIsProcessing(true);
     setErrorDetails(null);
     setIsCurrentSaved(false);
+
+    // Find portion preset label or construct label
+    const matchedPreset = PORTION_PRESETS.find(
+      (p) => Math.abs(p.multiplier - portionMultiplier) < 0.05
+    );
+    const portionLabel = matchedPreset
+      ? `${matchedPreset.label} (${portionMultiplier}x)`
+      : `Custom (${portionMultiplier.toFixed(2)}x)`;
 
     try {
       const headers: Record<string, string> = {
@@ -133,6 +146,10 @@ export default function Home() {
         body: JSON.stringify({
           image: selectedImage.base64,
           mimeType: selectedImage.mimeType,
+          portionSizeMultiplier: portionMultiplier,
+          portionLabel,
+          cookingMethod,
+          mealType,
         }),
       });
 
@@ -229,6 +246,12 @@ export default function Home() {
               onRemoveImage={handleRemoveImage}
               onAnalyzeMeal={handleAnalyzeMeal}
               isProcessing={isProcessing}
+              portionMultiplier={portionMultiplier}
+              onPortionChange={setPortionMultiplier}
+              cookingMethod={cookingMethod}
+              onCookingMethodChange={setCookingMethod}
+              mealType={mealType}
+              onMealTypeChange={setMealType}
             />
           </div>
 
@@ -286,7 +309,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="hidden lg:block border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">
-        <p>NutriSnap AI • Modern Standalone Two-Column Calorie Dashboard</p>
+        <p>NutriSnap AI • Portion &amp; Preparation Precision Control Dashboard</p>
       </footer>
     </div>
   );

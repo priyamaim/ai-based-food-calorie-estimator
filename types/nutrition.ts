@@ -13,6 +13,10 @@ export interface NutritionalAnalysis {
   confidence_score: 'High' | 'Medium' | 'Low' | string;
   health_tip: string;
   items?: FoodItemBreakdown[];
+  portionSizeMultiplier?: number;
+  portionLabel?: string;
+  cookingMethod?: string;
+  mealType?: string;
 }
 
 export interface MealScanItem {
@@ -25,6 +29,10 @@ export interface MealScanItem {
 export interface ApiPredictRequest {
   image: string; // base64 string
   mimeType: string;
+  portionSizeMultiplier?: number;
+  portionLabel?: string;
+  cookingMethod?: string;
+  mealType?: string;
 }
 
 export interface ApiPredictResponse {
