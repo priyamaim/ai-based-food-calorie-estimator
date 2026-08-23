@@ -17,8 +17,11 @@ import {
   Sliders,
   ChefHat,
   UtensilsCrossed,
+  Lightbulb,
+  ArrowRight,
+  Zap,
 } from 'lucide-react';
-import { NutritionalAnalysis } from '@/types/nutrition';
+import { NutritionalAnalysis, MealAlternative } from '@/types/nutrition';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 
 export const PORTION_PRESETS = [
@@ -51,6 +54,9 @@ interface ResultsDashboardProps {
   onCookingMethodChange: (method: string) => void;
   mealType: string;
   onMealTypeChange: (type: string) => void;
+  remainingDailyCalories?: number;
+  onRemainingDailyCaloriesChange?: (val: number) => void;
+  onApplySwap?: (alternative: MealAlternative) => void;
 }
 
 export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
@@ -66,6 +72,9 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   onCookingMethodChange,
   mealType,
   onMealTypeChange,
+  remainingDailyCalories = 2000,
+  onRemainingDailyCaloriesChange,
+  onApplySwap,
 }) => {
   // Live Portion Scale State for real-time recalculation
   const [livePortionScale, setLivePortionScale] = useState<number>(portionMultiplier);
@@ -115,6 +124,9 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
     calories: Math.round(item.calories * ratio),
   }));
 
+  const isExceedingBudget = scaledCalories > remainingDailyCalories;
+  const exceedsAmount = scaledCalories - remainingDailyCalories;
+
   return (
     <div className="space-y-6">
       {/* 1. ANALYSIS CONTEXT SETUP PANEL (Replaces No Meal Analyzed Yet graphic) */}
@@ -126,12 +138,36 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             </div>
             <div>
               <h3 className="text-base font-extrabold text-white">Analysis Context Setup</h3>
-              <p className="text-xs text-slate-400">Specify preparation options for AI accuracy</p>
+              <p className="text-xs text-slate-400">Specify preparation &amp; daily calorie budget</p>
             </div>
           </div>
           <span className="text-[11px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-full">
             Active Setup
           </span>
+        </div>
+
+        {/* Remaining Daily Calorie Budget */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+              <Flame className="w-3.5 h-3.5 text-amber-400" /> Remaining Daily Calorie Budget
+            </label>
+            <span className="text-xs font-mono font-extrabold text-amber-300 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/30">
+              {remainingDailyCalories} kcal
+            </span>
+          </div>
+          <input
+            type="number"
+            min="100"
+            max="5000"
+            step="50"
+            value={remainingDailyCalories}
+            onChange={(e) =>
+              onRemainingDailyCaloriesChange?.(Math.max(0, Number(e.target.value)))
+            }
+            className="w-full bg-[#090511]/80 border border-purple-950/80 rounded-xl px-3.5 py-2 text-xs font-mono text-white focus:outline-none focus:border-purple-500/60 transition"
+            placeholder="e.g. 2000"
+          />
         </div>
 
         {/* Meal Context Pills */}
@@ -246,6 +282,27 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       {/* 2. ANALYZED NUTRITIONAL DASHBOARD (Rendered when analysis is available) */}
       {analysis && (
         <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+          {/* Budget Warning Badge */}
+          {isExceedingBudget && (
+            <div className="glass-card rounded-2xl p-4 border border-purple-500/50 bg-gradient-to-r from-purple-950/90 via-purple-900/70 to-violet-950/90 text-purple-200 shadow-xl shadow-purple-950/40 flex items-center justify-between gap-3 animate-in fade-in duration-200">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-purple-500/20 border border-purple-400/40 text-purple-300 font-bold shrink-0 text-base">
+                  ⚠️
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300">
+                    Daily Budget Warning
+                  </h4>
+                  <p className="text-sm font-black text-white">
+                    ⚠️ Exceeds Daily Allowance by {exceedsAmount} kcal
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-mono font-bold px-3 py-1.5 rounded-full bg-purple-500/25 border border-purple-400/40 text-purple-200 shrink-0">
+                +{exceedsAmount} kcal over
+              </span>
+            </div>
+          )}
           {/* Hero Calorie Card */}
           <div className="glass-card rounded-3xl p-6 sm:p-7 border border-purple-500/30 bg-[#120c1f]/95 text-white relative overflow-hidden shadow-2xl shadow-purple-950/30">
             <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -364,14 +421,71 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                       style={{ width: `${Math.max(6, fatPct)}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-[10px] text-slate-400 font-medium">
-                    <span>{Math.round(fatCal)} kcal</span>
-                    <span>{fatPct}%</span>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Smart Low-Calorie Swap Engine Card */}
+          {analysis.alternatives && analysis.alternatives.length > 0 && (
+            <div className="glass-card rounded-3xl p-6 border border-purple-500/30 bg-[#120c1f]/95 text-white space-y-4 shadow-2xl shadow-purple-950/30">
+              <div className="flex items-center justify-between border-b border-purple-950/80 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                    <Lightbulb className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">💡 Healthy AI Swaps</h3>
+                    <p className="text-xs text-slate-400">
+                      Lower-calorie options maintaining similar taste &amp; protein
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
+                  {analysis.alternatives.length} Swaps Available
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3.5">
+                {analysis.alternatives.map((alt, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-2xl bg-[#090511]/90 p-4 border border-purple-900/60 hover:border-purple-500/40 transition-all space-y-3 shadow-md"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                          {alt.name}
+                        </h4>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          {alt.swapReason}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm">
+                          <Zap className="w-3.5 h-3.5" /> Save {alt.caloriesSaved} kcal
+                        </span>
+                        <span className="text-xs font-mono font-bold text-purple-300 bg-purple-950/60 px-2.5 py-1 rounded-lg border border-purple-900/40">
+                          {alt.calories} kcal
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => onApplySwap?.(alt)}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white text-xs font-bold shadow-md shadow-purple-500/20 transition active:scale-95"
+                      >
+                        <span>Apply Swap</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Itemized Breakdown Table */}
           {scaledItems && scaledItems.length > 0 && (

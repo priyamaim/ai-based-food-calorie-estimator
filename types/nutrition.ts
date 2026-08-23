@@ -4,6 +4,13 @@ export interface FoodItemBreakdown {
   calories: number;
 }
 
+export interface MealAlternative {
+  name: string;
+  calories: number;
+  caloriesSaved: number;
+  swapReason: string;
+}
+
 export interface NutritionalAnalysis {
   food_name: string;
   total_calories: number;
@@ -17,6 +24,7 @@ export interface NutritionalAnalysis {
   portionLabel?: string;
   cookingMethod?: string;
   mealType?: string;
+  alternatives?: MealAlternative[];
 }
 
 export interface MealScanItem {
@@ -33,6 +41,7 @@ export interface ApiPredictRequest {
   portionLabel?: string;
   cookingMethod?: string;
   mealType?: string;
+  remainingDailyCalories?: number;
 }
 
 export interface ApiPredictResponse {

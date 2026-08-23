@@ -8,7 +8,7 @@ import { InputPanel } from '@/components/InputPanel';
 import { ResultsDashboard, PORTION_PRESETS } from '@/components/ResultsDashboard';
 import { ScanHistory } from '@/components/ScanHistory';
 import { CompressionResult } from '@/utils/imageCompressor';
-import { NutritionalAnalysis, MealScanItem, ApiPredictResponse } from '@/types/nutrition';
+import { NutritionalAnalysis, MealScanItem, ApiPredictResponse, MealAlternative } from '@/types/nutrition';
 import { AlertCircle, ShieldAlert, Key } from 'lucide-react';
 
 export default function Home() {
@@ -21,6 +21,7 @@ export default function Home() {
   const [portionMultiplier, setPortionMultiplier] = useState<number>(1.0);
   const [cookingMethod, setCookingMethod] = useState<string>('Grilled/Baked');
   const [mealType, setMealType] = useState<string>('Lunch');
+  const [remainingDailyCalories, setRemainingDailyCalories] = useState<number>(2000);
 
   // Settings & History state
   const [customApiKey, setCustomApiKey] = useState<string>('');
@@ -39,10 +40,52 @@ export default function Home() {
       if (storedHistory) {
         setHistory(JSON.parse(storedHistory));
       }
+
+      const storedBudget = localStorage.getItem('nutrisnap_remaining_calories');
+      if (storedBudget) {
+        setRemainingDailyCalories(Number(storedBudget));
+      }
     } catch (e) {
       console.error('Failed to access localStorage:', e);
     }
   }, []);
+
+  const handleRemainingCaloriesChange = (val: number) => {
+    setRemainingDailyCalories(val);
+    try {
+      localStorage.setItem('nutrisnap_remaining_calories', String(val));
+    } catch (e) {
+      console.error('Failed to save remaining calories:', e);
+    }
+  };
+
+  const handleApplySwap = (alt: MealAlternative) => {
+    if (!analysisResult) return;
+    const newTotalCalories = alt.calories;
+    const oldCalories = analysisResult.total_calories || 1;
+    const scaleRatio = newTotalCalories / oldCalories;
+
+    const swappedAnalysis: NutritionalAnalysis = {
+      ...analysisResult,
+      food_name: alt.name,
+      total_calories: alt.calories,
+      health_tip: alt.swapReason,
+      protein_g: Math.round(analysisResult.protein_g * scaleRatio * 10) / 10,
+      carbs_g: Math.round(analysisResult.carbs_g * scaleRatio * 10) / 10,
+      fat_g: Math.round(analysisResult.fat_g * scaleRatio * 10) / 10,
+      items: [
+        {
+          name: alt.name,
+          portion: '1 serving (AI Swapped Option)',
+          calories: alt.calories,
+        },
+      ],
+      alternatives: analysisResult.alternatives,
+    };
+
+    setAnalysisResult(swappedAnalysis);
+    setIsCurrentSaved(false);
+  };
 
   // Save API Key
   const handleSaveApiKey = (key: string) => {
@@ -149,6 +192,7 @@ export default function Home() {
           portionLabel,
           cookingMethod,
           mealType,
+          remainingDailyCalories,
         }),
       });
 
@@ -263,6 +307,9 @@ export default function Home() {
               onCookingMethodChange={setCookingMethod}
               mealType={mealType}
               onMealTypeChange={setMealType}
+              remainingDailyCalories={remainingDailyCalories}
+              onRemainingDailyCaloriesChange={handleRemainingCaloriesChange}
+              onApplySwap={handleApplySwap}
             />
           </div>
         </div>

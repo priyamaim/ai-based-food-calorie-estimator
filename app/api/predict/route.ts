@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
       portionLabel = 'Medium (1.0x)',
       cookingMethod = 'Grilled/Baked',
       mealType = 'Lunch',
+      remainingDailyCalories = 2000,
     } = body;
 
     if (!image) {
@@ -46,14 +47,18 @@ USER SPECIFIED MEAL CONTEXT & PREPARATION:
 - Cooking / Preparation Method: ${cookingMethod}
 - Meal Context: ${mealType}
 
+DAILY CALORIE BUDGET CONTEXT:
+The user has ${remainingDailyCalories} kcal left today. If this meal exceeds or takes up more than 50% of their remaining budget, generate 2-3 healthier, lower-calorie alternatives for this exact dish that maintain similar taste/protein profiles.
+
 IMPORTANT GUIDELINES:
 1. Identify the primary dish in "food_name".
 2. Adjust total_calories, protein_g, carbs_g, fat_g, and ingredient breakdown accordingly:
    - The user indicates this meal was prepared via ${cookingMethod} and is a ${portionLabel} portion (${portionSizeMultiplier}x multiplier).
    - Higher portion sizes or deep-fried methods significantly increase total calories and fat estimates.
 3. Breakdown the dish into individual food components or ingredients in the "items" array. For each item, specify its name, estimated portion/weight (e.g. "150g" or "1 cup"), and individual calories.
-4. If the image is NOT edible food or drink, set "food_name" to "Non-Food Item Detected", set all nutrient values to 0, confidence_score to "Low", items to empty array, and explain in health_tip.
-5. Return ONLY a strict JSON object matching the schema.`;
+4. If this meal exceeds or takes up more than 50% of the user's remaining budget (${remainingDailyCalories} kcal), generate 2-3 healthier, lower-calorie alternatives for this exact dish that maintain similar taste/protein profiles in the "alternatives" array. Otherwise return an empty array for "alternatives". For each alternative, specify "name", "calories", "caloriesSaved" (difference between original dish total_calories and alternative calories), and "swapReason".
+5. If the image is NOT edible food or drink, set "food_name" to "Non-Food Item Detected", set all nutrient values to 0, confidence_score to "Low", items to empty array, alternatives to empty array, and explain in health_tip.
+6. Return ONLY a strict JSON object matching the schema.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.6-flash',
@@ -119,6 +124,20 @@ IMPORTANT GUIDELINES:
                 required: ['name', 'portion', 'calories'],
               },
             },
+            alternatives: {
+              type: Type.ARRAY,
+              description: 'Healthier, lower-calorie alternatives if meal exceeds or takes up >50% of remaining budget',
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING, description: 'Name of the alternative dish' },
+                  calories: { type: Type.NUMBER, description: 'Estimated calories for alternative dish' },
+                  caloriesSaved: { type: Type.NUMBER, description: 'Calorie savings compared to original dish' },
+                  swapReason: { type: Type.STRING, description: 'Explanation for why this is a good healthier swap' },
+                },
+                required: ['name', 'calories', 'caloriesSaved', 'swapReason'],
+              },
+            },
           },
           required: [
             'food_name',
@@ -129,6 +148,7 @@ IMPORTANT GUIDELINES:
             'confidence_score',
             'health_tip',
             'items',
+            'alternatives',
           ],
         },
       },
