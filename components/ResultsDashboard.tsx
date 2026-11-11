@@ -31,6 +31,14 @@ export const PORTION_PRESETS = [
   { label: 'Extra Large', multiplier: 2.0 },
 ];
 
+/** Returns the size label for a given multiplier, or 'Custom' if it doesn't match any preset. */
+function getPortionLabel(multiplier: number): string {
+  const match = PORTION_PRESETS.find(
+    (p) => Math.abs(p.multiplier - multiplier) < 0.05
+  );
+  return match ? match.label : 'Custom';
+}
+
 export const COOKING_METHODS = [
   'Raw/Fresh',
   'Boiled/Steamed',
@@ -223,7 +231,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
               <Sliders className="w-3.5 h-3.5 text-fuchsia-400" /> Portion Scale
             </label>
             <span className="text-xs font-mono font-extrabold text-purple-300 bg-purple-500/10 px-2.5 py-0.5 rounded-md border border-purple-500/30">
-              {(analysis ? livePortionScale : portionMultiplier).toFixed(2)}x Multiplier
+              {getPortionLabel(analysis ? livePortionScale : portionMultiplier)} · {(analysis ? livePortionScale : portionMultiplier).toFixed(2)}x
             </span>
           </div>
 
@@ -270,10 +278,12 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
               className="w-full h-2 rounded-lg bg-purple-950 appearance-none cursor-pointer accent-purple-400 focus:outline-none"
             />
             <div className="flex justify-between text-[10px] text-slate-500 font-mono pt-1">
-              <span>0.5x (Half)</span>
-              <span>1.0x (Standard)</span>
-              <span>2.0x (Double)</span>
-              <span>3.0x (Triple)</span>
+              <span>0.5x</span>
+              <span>0.75x (Small)</span>
+              <span>1.0x (Medium)</span>
+              <span>1.5x (Large)</span>
+              <span>2.0x (XL)</span>
+              <span>3.0x</span>
             </div>
           </div>
         </div>
@@ -337,7 +347,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                       </span>
                     )}
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-950/60 text-[11px] font-semibold text-fuchsia-300 border border-purple-900/40 font-mono">
-                      {livePortionScale.toFixed(2)}x Portion
+                      {getPortionLabel(livePortionScale)} · {livePortionScale.toFixed(2)}x
                     </span>
                   </div>
                 </div>
