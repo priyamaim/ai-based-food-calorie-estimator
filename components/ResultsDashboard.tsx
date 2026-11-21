@@ -31,12 +31,22 @@ export const PORTION_PRESETS = [
   { label: 'Extra Large', multiplier: 2.0 },
 ];
 
+export const PORTION_TICKS = [
+  { multiplier: 0.5, label: '0.5x', shortLabel: '0.5x' },
+  { multiplier: 0.75, label: '0.75x (Small)', shortLabel: '0.75x (S)' },
+  { multiplier: 1.0, label: '1.0x (Medium)', shortLabel: '1.0x (M)' },
+  { multiplier: 1.5, label: '1.5x (Large)', shortLabel: '1.5x (L)' },
+  { multiplier: 2.0, label: '2.0x (XL)', shortLabel: '2.0x (XL)' },
+];
+
 /** Returns the size label for a given multiplier, or 'Custom' if it doesn't match any preset. */
-function getPortionLabel(multiplier: number): string {
+export function getPortionLabel(multiplier: number): string {
   const match = PORTION_PRESETS.find(
     (p) => Math.abs(p.multiplier - multiplier) < 0.05
   );
-  return match ? match.label : 'Custom';
+  if (match) return match.label;
+  if (Math.abs(multiplier - 0.5) < 0.05) return 'Half';
+  return 'Custom';
 }
 
 export const COOKING_METHODS = [
@@ -265,7 +275,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             <input
               type="range"
               min="0.5"
-              max="3.0"
+              max="2.0"
               step="0.05"
               value={analysis ? livePortionScale : portionMultiplier}
               onChange={(e) => {
@@ -277,13 +287,57 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
               }}
               className="w-full h-2 rounded-lg bg-purple-950 appearance-none cursor-pointer accent-purple-400 focus:outline-none"
             />
-            <div className="flex justify-between text-[10px] text-slate-500 font-mono pt-1">
-              <span>0.5x</span>
-              <span>0.75x (Small)</span>
-              <span>1.0x (Medium)</span>
-              <span>1.5x (Large)</span>
-              <span>2.0x (XL)</span>
-              <span>3.0x</span>
+            {/* Tick notch indicators matching exact slider positions */}
+            <div className="relative w-full h-1 mt-1 mb-0.5 pointer-events-none">
+              {PORTION_TICKS.map((tick) => {
+                const percent = ((tick.multiplier - 0.5) / (2.0 - 0.5)) * 100;
+                const currentVal = analysis ? livePortionScale : portionMultiplier;
+                const isSelected = Math.abs(currentVal - tick.multiplier) < 0.05;
+                return (
+                  <div
+                    key={tick.multiplier}
+                    style={{
+                      left: `${percent}%`,
+                      transform: percent === 0 ? 'none' : percent === 100 ? 'translateX(-100%)' : 'translateX(-50%)',
+                    }}
+                    className={`absolute w-1 h-1 rounded-full transition-colors ${
+                      isSelected ? 'bg-purple-400 scale-125' : 'bg-purple-900/60'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+            {/* Coordinated clickable tick labels */}
+            <div className="relative w-full h-5">
+              {PORTION_TICKS.map((tick) => {
+                const percent = ((tick.multiplier - 0.5) / (2.0 - 0.5)) * 100;
+                const currentVal = analysis ? livePortionScale : portionMultiplier;
+                const isSelected = Math.abs(currentVal - tick.multiplier) < 0.05;
+                return (
+                  <button
+                    key={tick.multiplier}
+                    type="button"
+                    onClick={() => {
+                      onPortionChange(tick.multiplier);
+                      if (analysis) {
+                        setLivePortionScale(tick.multiplier);
+                      }
+                    }}
+                    style={{
+                      left: `${percent}%`,
+                      transform: percent === 0 ? 'none' : percent === 100 ? 'translateX(-100%)' : 'translateX(-50%)',
+                    }}
+                    className={`absolute text-[10px] font-mono transition-colors cursor-pointer select-none whitespace-nowrap ${
+                      isSelected
+                        ? 'text-purple-300 font-bold scale-105'
+                        : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">{tick.label}</span>
+                    <span className="sm:hidden">{tick.shortLabel}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

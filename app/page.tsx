@@ -171,6 +171,8 @@ export default function Home() {
     );
     const portionLabel = matchedPreset
       ? `${matchedPreset.label} (${portionMultiplier}x)`
+      : Math.abs(portionMultiplier - 0.5) < 0.05
+      ? `Half (${portionMultiplier.toFixed(2)}x)`
       : `Custom (${portionMultiplier.toFixed(2)}x)`;
 
     try {
